@@ -5,8 +5,15 @@ const { listingSchema, reviewSchema } = require("./schema.js");
 
 module.exports.isLoggedIn = (req, res, next) => {
     if(!req.isAuthenticated()){
-        //redirect originalUrl
-        req.session.redirectUrl = req.originalUrl;
+        //redirect originalUrl without query parameters
+        let redirectPath = req.originalUrl.split('?')[0];
+        // If it's a review path, redirect to the listing instead
+        if(redirectPath.includes('/reviews/')) {
+            const listingId = redirectPath.split('/listings/')[1].split('/reviews')[0];
+            req.session.redirectUrl = `/listings/${listingId}`;
+        } else {
+            req.session.redirectUrl = redirectPath;
+        }
         req.flash("error", "You must be logged in to create listing!");
         return res.redirect("/login");
     }
@@ -15,7 +22,8 @@ module.exports.isLoggedIn = (req, res, next) => {
 
 module.exports.saveRedirecUrl = (req, res, next) => {
     if(req.session.redirectUrl) {
-        res.locals.redirectUrl =  req.session.redirectUrl;  
+        res.locals.redirectUrl =  req.session.redirectUrl;
+        delete req.session.redirectUrl;  
     }
     next();
 }
